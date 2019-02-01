@@ -1,0 +1,13 @@
+[
+  {
+    "name" : "de.evosec.prunedirectory.PruneDirectoryApplication",
+    "allDeclaredConstructors" : true,
+    "allPublicConstructors" : true,
+    "allDeclaredMethods" : true,
+    "allPublicMethods" : true,
+    "fields" : [
+      { "name" : "maxSize" },
+      { "name" : "directory" }
+    ]
+  }
+]

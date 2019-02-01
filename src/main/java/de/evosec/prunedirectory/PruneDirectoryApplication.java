@@ -12,42 +12,47 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Callable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
-@SpringBootApplication
-@EnableConfigurationProperties(PruneDirectoryProperties.class)
-public class PruneDirectoryApplication implements ApplicationRunner {
+import picocli.CommandLine;
+import picocli.CommandLine.Help.Visibility;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+
+public class PruneDirectoryApplication implements Callable<Void> {
 
 	private static final Logger LOG =
 	        LoggerFactory.getLogger(PruneDirectoryApplication.class);
 
-	public static void main(String[] args) {
-		SpringApplication.run(PruneDirectoryApplication.class, args);
+	public static void main(String[] args) throws IOException {
+		CommandLine.call(new PruneDirectoryApplication(), args);
 	}
 
-	@Autowired
-	private PruneDirectoryProperties properties;
+	@Parameters(index = "0", description = "The directory to prune")
+	private String directory;
+	@Option(
+	        names = {"--max-size"},
+	        description = "100MiB, 512MiB, 1GiB, ...",
+	        defaultValue = "100MiB",
+	        showDefaultValue = Visibility.ALWAYS)
+	private String maxSize;
 
 	@Override
-	public void run(ApplicationArguments args) throws Exception {
-		Path directory = Paths.get(properties.getDirectory());
+	public Void call() throws Exception {
+		Path directory = Paths.get(this.directory);
 		if (!directory.isAbsolute()) {
 			directory = Paths.get(System.getProperty("user.dir"))
-			    .resolve(directory).toAbsolutePath();
+			    .resolve(directory)
+			    .toAbsolutePath();
 		}
 		if (Files.notExists(directory)) {
 			LOG.warn("Directory {} does not exist. Exiting.", directory);
-			return;
+			return null;
 		}
-		long maxSize = parseSize(properties.getMaxSize());
+		long maxSize = parseSize(this.maxSize);
 		LOG.info("Pruning {} to maximum size of {}", directory,
 		    humanReadableByteCount(maxSize, false));
 		List<Path> files = new ArrayList<>();
@@ -77,6 +82,7 @@ public class PruneDirectoryApplication implements ApplicationRunner {
 			    humanReadableByteCount(size, false),
 			    humanReadableByteCount(currentSize, false));
 		}
+		return null;
 	}
 
 	private static FileTime getLastModifiedTime(Path path) {
